@@ -21,6 +21,25 @@ Primary (your market's job boards - scaffold one with `/add-portal`):
 Secondary (company career pages via Google):
 - Direct Google searches with `site:` filters for known target companies
 
+### French market
+
+CLIs (run first, no `site:` line needed): `francetravail-search` (official France Travail API,
+every sector and region) and `wttj-search` (Welcome to the Jungle, startups and scale-ups).
+
+Boards without a CLI, covered by WebSearch fallback only. APEC sits behind anti-bot protection
+and Indeed disallows automated access, so no CLI is built for them; these queries stay
+low-volume and only read what a search engine already indexes:
+
+```
+site:apec.fr/candidat/recherche-emploi.html "[YOUR_PRIMARY_JOB_TITLE_1]" [YOUR_CITY]
+site:hellowork.com/fr-fr/emplois "[YOUR_PRIMARY_JOB_TITLE_1]" [YOUR_CITY]
+site:cadremploi.fr/emploi "[YOUR_PRIMARY_JOB_TITLE_1]" [YOUR_CITY]
+site:fr.indeed.com "[YOUR_PRIMARY_JOB_TITLE_1]" [YOUR_CITY]
+```
+
+For APEC in particular (the main board for cadre roles), the most reliable route is an APEC
+email alert on the user's own account; paste the alert's offers into `/apply` as usual.
+
 ## Query Categories
 
 Queries are grouped by priority. Write **each category in every language from your Languages table** (see Language scope above). Combine each query with your location terms (e.g. your city, region, or metro area) where the site supports it.
