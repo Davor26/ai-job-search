@@ -52,9 +52,15 @@ bun run .agents/skills/wttj-search/cli/src/cli.ts search --query "<text>" [flags
 Key flags:
 - `--query <text>` / `-q <text>` — keywords. **Required** by WTTJ's API, except with
   `--junior`, which supplies a broad early-careers query.
-- `--location <city>` / `-l <city>` — keep jobs with an office in this city. Accent- and
-  case-insensitive substring match, so `-l evry` matches "Évry-Courcouronnes" and
-  `-l Paris` does **not** match La Défense or Boulogne (search those separately).
+- `--location <place>` / `-l <place>` — by default an accent- and case-insensitive match on
+  the office city, so `-l evry` matches "Évry-Courcouronnes" but `-l Paris` alone misses
+  Clichy, Aubervilliers or La Défense. For a commuting zone use a region or a radius:
+  - `-l "Île-de-France"` (or `IDF`): 45 km around Paris; `-l "Grand Paris"`: 20 km.
+  - `-l Paris --radius 15`: distance from the city centre, using each office's coordinates.
+    Known centres: Paris, La Défense, Montrouge, Boulogne-Billancourt, Lyon, Marseille,
+    Toulouse, Nice, Nantes, Strasbourg, Montpellier, Bordeaux, Lille, Rennes, Grenoble,
+    Aix-en-Provence.
+- `--radius <km>` — see above; requires `--location` set to a known centre.
 - `--country <ISO2>` — office country, default `FR` (`BE`, `CH`, `LU`… also work).
 - `--contract <type>` — `cdi`, `cdd`, `stage`, `alternance`, `freelance`, `vie`, `temps_partiel`.
 - `--remote <mode>` — `fulltime` (full remote), `partial`, `punctual`, `no`.
@@ -71,14 +77,19 @@ bun run .agents/skills/wttj-search/cli/src/cli.ts detail <org/slug|url> [--forma
 ```
 
 `id` is the `<org>/<slug>` reference from `search` results. A full WTTJ page or API URL also
-works. Returns the full description, contract type, remote policy, minimum experience,
-education level, salary and apply link.
+works. Returns the description, the **candidate profile** ("profil recherché": the experience
+and skills asked for, kept separate from the description, which matters for fit evaluation),
+key missions, skills, tools, recruitment process, contract type, remote policy, minimum
+experience, salary, start date and apply link.
 
 ## Usage examples
 
 ```bash
-# Business developer roles in Paris
-bun run .agents/skills/wttj-search/cli/src/cli.ts search -q "business developer" -l Paris --format table
+# Business developer roles within 15 km of central Paris (includes the inner suburbs)
+bun run .agents/skills/wttj-search/cli/src/cli.ts search -q "business developer" -l Paris --radius 15 --format table
+
+# Same role anywhere in Île-de-France
+bun run .agents/skills/wttj-search/cli/src/cli.ts search -q "business developer" -l "Île-de-France" --format table
 
 # Permanent (CDI) data analyst roles posted in the last two weeks
 bun run .agents/skills/wttj-search/cli/src/cli.ts search -q "data analyst" --contract cdi --jobage 14 --format table
@@ -111,6 +122,9 @@ All errors are written to **stderr** as `{ "error": "...", "code": "..." }` and 
   15 pages).
 - WTTJ may rate-limit; the CLI retries 429/5xx with exponential backoff. Keep volume low.
 - Job IDs are `<org>/<slug>`; pass them as-is to `detail`.
+- `remote` can also be `unknown` in results; `--remote` only filters on the four known values.
+- Verified against the live API on 2026-10-25 (`cli/tests/fixtures/`); contract values seen:
+  `full_time`, `temporary`, `internship`, `apprenticeship`, `freelance`, `vie`, `part_time`, `other`.
 - `--junior` is a title/contract/experience heuristic; WTTJ has no single "junior" field, so it
   errs toward inclusion.
 - Adapted from the UK community fork's `wttj-search`

@@ -5,7 +5,7 @@
 
 import { runSearch, type SearchOpts } from "./commands/search.js"
 import { runDetail, type DetailOpts } from "./commands/detail.js"
-import { normalizeContract, writeError } from "./helpers.js"
+import { PLACE_COORDS, REGION_RADIUS, normalizeContract, placeKey, writeError } from "./helpers.js"
 
 interface Flags {
   _: string[]
@@ -45,8 +45,13 @@ USAGE
 
 SEARCH FLAGS
   --query, -q <text>      Keywords (job title, skill, or role). Required by WTTJ's API.
-  --location, -l <city>   Keep jobs with an office in this city (accent/case-insensitive,
-                          e.g. "Paris", "Lyon", "Boulogne"). Client-side filter.
+  --location, -l <place>  City name (accent/case-insensitive substring of the office city),
+                          or a region: "Île-de-France" / "IDF" (45 km around Paris),
+                          "Grand Paris" (20 km).
+  --radius <km>           Distance around --location instead of a name match. Works for
+                          Paris, La Défense, Montrouge, Boulogne-Billancourt, Lyon, Marseille,
+                          Toulouse, Nice, Nantes, Strasbourg, Montpellier, Bordeaux, Lille,
+                          Rennes, Grenoble, Aix-en-Provence.
   --country <ISO2>        Office country to keep. Default FR (BE, CH, LU, ES… also work).
   --contract <type>       cdi | cdd | stage | alternance | freelance | vie | temps_partiel
                           (or WTTJ's own: full_time, temporary, internship, apprenticeship…)
@@ -60,7 +65,8 @@ SEARCH FLAGS
   --format <fmt>          json (default) | table | plain.
 
 EXAMPLES
-  bun run src/cli.ts search -q "business developer" -l Paris --format table
+  bun run src/cli.ts search -q "business developer" -l Paris --radius 15 --format table
+  bun run src/cli.ts search -q "business developer" -l "Île-de-France" --format table
   bun run src/cli.ts search -q "data analyst" --contract cdi --jobage 14 --format table
   bun run src/cli.ts search -q "product manager" --remote fulltime -n 20
   bun run src/cli.ts search --junior -l Lyon --format plain
@@ -83,7 +89,7 @@ async function main(): Promise<number> {
     const fmt = (flags.format as string) || "json"
 
     // Numeric filter flags must be non-negative whole numbers (reject "2.5" and "-5").
-    for (const key of ["jobage", "page", "limit"]) {
+    for (const key of ["jobage", "page", "limit", "radius"]) {
       const raw = flags[key]
       if (raw === undefined) continue
       if (typeof raw !== "string" || !/^\d+$/.test(raw)) {
@@ -122,9 +128,34 @@ async function main(): Promise<number> {
       remote = r
     }
 
+    const location = typeof flags.location === "string" ? flags.location : undefined
+    const radius = typeof flags.radius === "string" ? parseInt(flags.radius, 10) : undefined
+    let near: SearchOpts["near"]
+    if (location) {
+      const key = placeKey(location)
+      const region = REGION_RADIUS[key] ?? REGION_RADIUS[key.replace(/ /g, "-")]
+      if (region) {
+        near = { center: PLACE_COORDS[region.center], km: radius ?? region.km }
+      } else if (radius !== undefined) {
+        const center = PLACE_COORDS[key] ?? PLACE_COORDS[key.replace(/ /g, "-")]
+        if (!center) {
+          writeError(
+            `--radius needs a known place for --location (${Object.keys(PLACE_COORDS).join(", ")}), got "${location}"`,
+            "BAD_ARG",
+          )
+          return 1
+        }
+        near = { center, km: radius }
+      }
+    } else if (radius !== undefined) {
+      writeError("--radius needs --location", "BAD_ARG")
+      return 1
+    }
+
     const opts: SearchOpts = {
       query: typeof flags.query === "string" ? flags.query : undefined,
-      location: typeof flags.location === "string" ? flags.location : undefined,
+      location,
+      near,
       country,
       contract,
       remote,

@@ -4,6 +4,7 @@ import {
   mapCard,
   inCountry,
   inCity,
+  nearPoint,
   isJunior,
   writeError,
   type JobCard,
@@ -12,6 +13,8 @@ import {
 export interface SearchOpts {
   query?: string
   location?: string
+  /** When set, --location is matched by distance instead of by city name. */
+  near?: { center: [number, number]; km: number }
   country: string
   contract?: string // normalized WTTJ contract_type
   remote?: string
@@ -69,7 +72,9 @@ export async function runSearch(opts: SearchOpts): Promise<number> {
 
       for (const raw of data) {
         if (!inCountry(raw, opts.country)) continue
-        if (opts.location && !inCity(raw, opts.location, opts.country)) continue
+        if (opts.near) {
+          if (!nearPoint(raw, opts.near.center, opts.near.km, opts.country)) continue
+        } else if (opts.location && !inCity(raw, opts.location, opts.country)) continue
         const card = mapCard(raw, opts.country)
         if (seen.has(card.id)) continue
         if (opts.contract && (card.contractType || "").toLowerCase() !== opts.contract) continue
@@ -109,6 +114,7 @@ export async function runSearch(opts: SearchOpts): Promise<number> {
               page: opts.page,
               country: opts.country,
               location: opts.location ?? null,
+              radiusKm: opts.near?.km ?? null,
             },
             results: cards,
           },

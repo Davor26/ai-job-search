@@ -26,7 +26,8 @@ in the search payload.
 
 Because `location` is ignored, the CLI filters client-side to jobs with an office in the
 requested country (`office.country_code` or any `offices[].country_code`, default `FR`) and,
-with `--location`, whose city matches (accent/case-insensitive). `--contract` compares against
+with `--location`, whose city matches (accent/case-insensitive) or, with `--radius` or a
+region name, whose office `latitude`/`longitude` lies within the given distance. `--contract` compares against
 `contract_type` (`full_time`, `temporary`, `internship`, `apprenticeship`, `freelance`, …) and
 `--remote` against `remote` (`fulltime`, `partial`, `punctual`, `no`). It scans forward across
 pages to fill `--limit`.
@@ -37,7 +38,12 @@ pages to fill `--limit`.
 GET https://api.welcometothejungle.com/api/v3/organizations/<orgSlug>/jobs/<jobSlug>
 ```
 
-Returns `{ job: { ... } }`. The org-scoped endpoint (keyed by the `<org>/<slug>` reference
+Returns `{ job: { ... } }`. Besides the search fields it carries `description` (HTML),
+`looking_for_candidate_description` (HTML, the "profil recherché"), `key_missions[]`,
+`recruitment_process` (HTML), `skills[]` and `tools[]` (each `{ name: { fr, en, … } }`),
+`language`, `start_date`, `education_level`, `experience_level`, `contract_duration_min/max`,
+`profession`, `apply_url` (often an `ats.welcometothejungle.com` link) and `offices[]` with
+`zip_code` and coordinates. The org-scoped endpoint (keyed by the `<org>/<slug>` reference
 from a search result) is the one that resolves — the bare `/public/jobs/<id>` form 404s and
 the public HTML page is bot-blocked. Adds the rich HTML `description` (flattened to text),
 `education_level`, and `apply_url` on top of the search fields.

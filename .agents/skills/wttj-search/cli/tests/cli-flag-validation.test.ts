@@ -80,4 +80,16 @@ describe("cli flag validation", () => {
     expect(r.exitCode).toBe(1)
     expect(JSON.parse(r.stderr).code).toBe("BAD_ARG")
   })
+
+  test("--radius without --location is rejected", async () => {
+    const r = await runCLI(["search", "-q", "x", "--radius", "10"])
+    expect(r.exitCode).toBe(1)
+    expect(JSON.parse(r.stderr).code).toBe("BAD_ARG")
+  })
+
+  test("--radius around an unknown place is rejected", async () => {
+    const r = await runCLI(["search", "-q", "x", "-l", "Atlantis", "--radius", "10"])
+    expect(r.exitCode).toBe(1)
+    expect(JSON.parse(r.stderr).code).toBe("BAD_ARG")
+  })
 })

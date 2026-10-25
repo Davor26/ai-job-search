@@ -34,8 +34,8 @@ All errors are written to **stderr** as `{ "error": "...", "code": "..." }` with
 ## Quick examples
 
 ```bash
-# Business developer roles in Paris
-bun run src/cli.ts search -q "business developer" -l Paris --format table
+# Business developer roles within 15 km of Paris
+bun run src/cli.ts search -q "business developer" -l Paris --radius 15 --format table
 
 # CDI data analyst roles posted in the last 14 days
 bun run src/cli.ts search -q "data analyst" --contract cdi --jobage 14 --format table
@@ -54,7 +54,8 @@ See `../SKILL.md` for the full flag reference and the personal-use note.
 | Flag | Alias | Description |
 |------|-------|-------------|
 | `--query` | `-q` | Keywords (title / skill / role). Required unless `--junior` is used. |
-| `--location` | `-l` | Keep jobs with an office in this city (accent/case-insensitive). |
+| `--location` | `-l` | City name match, or a region (`Île-de-France`, `Grand Paris`). |
+| `--radius` | | Km around a known `--location` centre (uses office coordinates). |
 | `--country` | | Office country, ISO 2-letter code. Default `FR`. |
 | `--contract` | | `cdi` \| `cdd` \| `stage` \| `alternance` \| `freelance` \| `vie` \| `temps_partiel`. |
 | `--remote` | | `fulltime` \| `partial` \| `punctual` \| `no`. |
@@ -67,6 +68,6 @@ See `../SKILL.md` for the full flag reference and the personal-use note.
 ## Tests
 
 ```bash
-bun test            # unit (mapping, country/city filters, contract aliases, junior heuristic, id parsing) + CLI flag-validation
+bun test            # unit + a real API response fixture (tests/fixtures) + CLI flag-validation
 bun run typecheck   # tsc --noEmit
 ```
